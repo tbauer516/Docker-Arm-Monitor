@@ -1,0 +1,42 @@
+# create our grafana variables directory
+docker run -d -v /var/lib/grafana --name grafana-storage busybox:latest
+
+# create our grafana container
+docker create \
+--name=grafana \
+-p 3000:3000 \
+--volumes-from grafana-storage \
+-e "GF_SECURITY_ADMIN_PASSWORD=<password>" \
+easypi/grafana-arm
+docker start grafana
+
+# make our docker container run at boot under the current user
+cp services/grafana.service /lib/systemd/system/grafana.service
+sed -i 's/<user>/$USER/g' /lib/systemd/system/grafana.service
+systemctl enable grafana.service
+
+
+# make influxdb directory for our data and config
+mkdir -p ~/docker/influxdb/conf/
+mkdir -p ~/docker/influxdb/db/
+
+# setup the basic config
+docker run --rm easypi/influxdb-arm influxd config > ~/docker/influxdb/conf/influxdb.conf
+
+# create the "home" database for our data
+curl -i -XPOST http://localhost:8086/query --data-urlencode "q=CREATE DATABASE home"
+
+# create the influxdb  container
+docker create \
+--name influxdb \
+-e PUID=1000 -e PGID=1000 \
+-p 8083:8083 -p 8086:8086 \
+-v ~/docker/influxdb/conf/influxdb.conf:/etc/influxdb/influxdb.conf:ro \
+-v ~/docker/influxdb/db:/var/lib/influxdb \
+easypi/influxdb-arm -config /etc/influxdb/influxdb.conf
+docker start influxdb
+
+# make our docker container run at boot under the current user
+cp services/influxdb.service /lib/systemd/system/influxdb.service
+sed -i 's/<user>/$USER/g' /lib/systemd/system/influxdb.service
+systemctl enable influxdb.service

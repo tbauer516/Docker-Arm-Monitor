@@ -1,0 +1,12 @@
+[Unit]
+Description=grafana container
+Requires=docker.service
+After=docker.service
+[Service]
+User=<user>
+Restart=on-failure
+RestartSec=45
+ExecStart=/usr/bin/docker start -a grafana
+ExecStop=/usr/bin/docker stop -t 2 grafana
+[Install]
+WantedBy=multi-user.target

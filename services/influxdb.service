@@ -1,0 +1,12 @@
+[Unit]
+Description=influxdb container
+Requires=docker.service
+After=docker.service
+[Service]
+User=<user>
+Restart=on-failure
+RestartSec=45
+ExecStart=/usr/bin/docker start -a influxdb
+ExecStop=/usr/bin/docker stop -t 2 influxdb
+[Install]
+WantedBy=multi-user.target
